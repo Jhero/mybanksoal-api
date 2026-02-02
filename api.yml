@@ -41,6 +41,9 @@ components:
             x-go-package: github.com/jovan/mybanksoal-api/internal/entity
         RegisterRequest:
             properties:
+                api_key:
+                    type: string
+                    x-go-name: APIKey
                 password:
                     type: string
                     x-go-name: Password

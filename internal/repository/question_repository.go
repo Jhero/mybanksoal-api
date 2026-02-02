@@ -22,7 +22,16 @@ func NewQuestionRepository(db *gorm.DB) QuestionRepository {
 }
 
 func (r *questionRepository) Create(question *entity.Question) error {
-	return r.db.Create(question).Error
+	if err := r.db.Create(question).Error; err != nil {
+		return err
+	}
+	// Reload the question with User association
+	var reloadedQuestion entity.Question
+	if err := r.db.Preload("User").First(&reloadedQuestion, question.ID).Error; err != nil {
+		return err
+	}
+	*question = reloadedQuestion
+	return nil
 }
 
 func (r *questionRepository) Update(question *entity.Question) error {

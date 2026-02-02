@@ -14,6 +14,11 @@ func CasbinMiddleware(enforcer *casbin.Enforcer) echo.MiddlewareFunc {
 			path := c.Path()
 			method := c.Request().Method
 
+			// Short-circuit: admin bypasses RBAC checks
+			if userRole == "admin" {
+				return next(c)
+			}
+
 			// Check permission
 			allowed, err := enforcer.Enforce(userRole, path, method)
 			if err != nil {

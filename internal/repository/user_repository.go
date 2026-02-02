@@ -8,6 +8,7 @@ import (
 type UserRepository interface {
 	Create(user *entity.User) error
 	FindByUsername(username string) (*entity.User, error)
+	FindByAPIKey(apiKey string) (*entity.User, error)
 	FindByID(id uint) (*entity.User, error)
 }
 
@@ -26,6 +27,14 @@ func (r *userRepository) Create(user *entity.User) error {
 func (r *userRepository) FindByUsername(username string) (*entity.User, error) {
 	var user entity.User
 	if err := r.db.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *userRepository) FindByAPIKey(apiKey string) (*entity.User, error) {
+	var user entity.User
+	if err := r.db.Where("api_key = ?", apiKey).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

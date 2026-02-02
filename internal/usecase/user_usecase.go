@@ -10,7 +10,7 @@ import (
 )
 
 type UserUseCase interface {
-	Register(username, password, role string) error
+	Register(username, password, role, apiKey string) (*entity.User, error)
 	Login(username, password string) (string, error)
 }
 
@@ -26,24 +26,43 @@ func NewUserUseCase(userRepo repository.UserRepository, cfg *config.Config) User
 	}
 }
 
-func (u *userUseCase) Register(username, password, role string) error {
+func (u *userUseCase) Register(username, password, role, apiKey string) (*entity.User, error) {
 	// Check if user exists
 	if _, err := u.userRepo.FindByUsername(username); err == nil {
-		return errors.New("username already exists")
+		return nil, errors.New("username already exists")
+	}
+
+	// Check if API Key exists
+	if apiKey != "" {
+		if _, err := u.userRepo.FindByAPIKey(apiKey); err == nil {
+			return nil, errors.New("api key already exists")
+		}
+	} else {
+		// Generate API Key if not provided
+		generatedKey, err := utils.GenerateRandomString(32)
+		if err != nil {
+			return nil, err
+		}
+		apiKey = generatedKey
 	}
 
 	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	user := &entity.User{
 		Username: username,
 		Password: hashedPassword,
 		Role:     role,
+		APIKey:   apiKey,
 	}
 
-	return u.userRepo.Create(user)
+	if err := u.userRepo.Create(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (u *userUseCase) Login(username, password string) (string, error) {

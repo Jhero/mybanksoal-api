@@ -21,6 +21,7 @@ type RegisterRequest struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
 	Role     string `json:"role"`
+	APIKey   string `json:"api_key"`
 }
 
 // swagger:model LoginRequest
@@ -48,11 +49,16 @@ func (h *UserHandler) Register(c echo.Context) error {
 		req.Role = "user"
 	}
 
-	if err := h.userUseCase.Register(req.Username, req.Password, req.Role); err != nil {
+	user, err := h.userUseCase.Register(req.Username, req.Password, req.Role, req.APIKey)
+	if err != nil {
 		return response.Error(c, http.StatusBadRequest, "Failed to register", err.Error())
 	}
 
-	return response.Success(c, http.StatusCreated, "User registered successfully", nil)
+	return response.Success(c, http.StatusCreated, "User registered successfully", map[string]string{
+		"api_key": user.APIKey,
+		"username": user.Username,
+		"role": user.Role,
+	})
 }
 
 // Login user

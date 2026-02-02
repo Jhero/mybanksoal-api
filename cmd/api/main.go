@@ -58,6 +58,20 @@ func main() {
 		enforcer.SavePolicy()
 	}
 
+	// Seed mobile_reader policies
+	if hasPolicy, _ := enforcer.HasPolicy("mobile_reader", "/questions", "GET"); !hasPolicy {
+		log.Println("Seeding mobile_reader policies...")
+		enforcer.AddPolicy("mobile_reader", "/questions", "GET")
+		enforcer.AddPolicy("mobile_reader", "/questions/*", "GET")
+		if err := enforcer.SavePolicy(); err != nil {
+			log.Printf("Failed to save policy: %v", err)
+		} else {
+			log.Println("mobile_reader policies saved successfully")
+		}
+	} else {
+		log.Println("mobile_reader policies already exist")
+	}
+
 	// 5. Setup Layers
 	userRepo := repository.NewUserRepository(db)
 	questionRepo := repository.NewQuestionRepository(db)
@@ -113,7 +127,7 @@ func main() {
 
 	// Protected Routes
 	api := e.Group("")
-	api.Use(middleware.AuthMiddleware(cfg))
+	api.Use(middleware.AuthMiddleware(cfg, userRepo))
 	api.Use(middleware.CasbinMiddleware(enforcer))
 
 	// Question Routes
