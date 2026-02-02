@@ -27,9 +27,9 @@ type CreateQuestionRequest struct {
 
 // swagger:model UpdateQuestionRequest
 type UpdateQuestionRequest struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
-	Answer  string `json:"answer"`
+	Title   *string `json:"title"`
+	Content *string `json:"content"`
+	Answer  *string `json:"answer"`
 }
 
 // swagger:model UpdateStatusRequest
@@ -59,6 +59,12 @@ func (h *QuestionHandler) Create(c echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "Failed to create question", err.Error())
 	}
 
+	// Filter user info if not admin
+	role, _ := c.Get("role").(string)
+	if role != "admin" {
+		question.User = nil
+	}
+
 	return response.Success(c, http.StatusCreated, "Question created successfully", question)
 }
 
@@ -83,6 +89,12 @@ func (h *QuestionHandler) Update(c echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "Failed to update question", err.Error())
 	}
 
+	// Filter user info if not admin
+	role, _ := c.Get("role").(string)
+	if role != "admin" {
+		question.User = nil
+	}
+
 	return response.Success(c, http.StatusOK, "Question updated successfully", question)
 }
 
@@ -105,6 +117,12 @@ func (h *QuestionHandler) UpdateStatus(c echo.Context) error {
 	question, err := h.questionUseCase.UpdateStatus(uint(id), req.Status)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "Failed to update status", err.Error())
+	}
+
+	// Filter user info if not admin
+	role, _ := c.Get("role").(string)
+	if role != "admin" {
+		question.User = nil
 	}
 
 	return response.Success(c, http.StatusOK, "Status updated successfully", question)
@@ -146,6 +164,12 @@ func (h *QuestionHandler) GetByID(c echo.Context) error {
 		return response.Error(c, http.StatusNotFound, "Question not found", err.Error())
 	}
 
+	// Filter user info if not admin
+	role, _ := c.Get("role").(string)
+	if role != "admin" {
+		question.User = nil
+	}
+
 	return response.Success(c, http.StatusOK, "Question found", question)
 }
 
@@ -168,6 +192,14 @@ func (h *QuestionHandler) GetAll(c echo.Context) error {
 	questions, err := h.questionUseCase.GetAll(offset, limit)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "Failed to fetch questions", err.Error())
+	}
+
+	// Filter user info if not admin
+	role, _ := c.Get("role").(string)
+	if role != "admin" {
+		for i := range questions {
+			questions[i].User = nil
+		}
 	}
 
 	return response.Success(c, http.StatusOK, "Questions fetched successfully", questions)

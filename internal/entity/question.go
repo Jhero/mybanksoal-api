@@ -22,7 +22,7 @@ type Question struct {
 	Difficulty int            `gorm:"default:1" json:"difficulty"`
 	Status    QuestionStatus `gorm:"default:'draft';index" json:"status"`
 	CreatedBy uint           `json:"created_by"`
-	User      User           `gorm:"foreignKey:CreatedBy" json:"user,omitempty"`
+	User      *User          `gorm:"foreignKey:CreatedBy" json:"user,omitempty"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

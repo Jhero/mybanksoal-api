@@ -9,7 +9,7 @@ import (
 
 type QuestionUseCase interface {
 	Create(title, content, answer string, createdBy uint) (*entity.Question, error)
-	Update(id uint, title, content, answer string) (*entity.Question, error)
+	Update(id uint, title, content, answer *string) (*entity.Question, error)
 	UpdateStatus(id uint, status entity.QuestionStatus) (*entity.Question, error)
 	Delete(id uint) error
 	GetByID(id uint) (*entity.Question, error)
@@ -40,15 +40,21 @@ func (u *questionUseCase) Create(title, content, answer string, createdBy uint) 
 	return question, nil
 }
 
-func (u *questionUseCase) Update(id uint, title, content, answer string) (*entity.Question, error) {
+func (u *questionUseCase) Update(id uint, title, content, answer *string) (*entity.Question, error) {
 	question, err := u.questionRepo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	question.Title = title
-	question.Content = content
-	question.Answer = answer
+	if title != nil {
+		question.Title = *title
+	}
+	if content != nil {
+		question.Content = *content
+	}
+	if answer != nil {
+		question.Answer = *answer
+	}
 
 	if err := u.questionRepo.Update(question); err != nil {
 		return nil, err
