@@ -1,0 +1,249 @@
+definitions:
+    CreateQuestionRequest:
+        properties:
+            answer:
+                type: string
+                x-go-name: Answer
+            content:
+                type: string
+                x-go-name: Content
+            title:
+                type: string
+                x-go-name: Title
+        type: object
+        x-go-package: github.com/jovan/mybanksoal-api/internal/handler
+    LoginRequest:
+        properties:
+            password:
+                type: string
+                x-go-name: Password
+            username:
+                type: string
+                x-go-name: Username
+        type: object
+        x-go-package: github.com/jovan/mybanksoal-api/internal/handler
+    QuestionStatus:
+        type: string
+        x-go-package: github.com/jovan/mybanksoal-api/internal/entity
+    RegisterRequest:
+        properties:
+            password:
+                type: string
+                x-go-name: Password
+            role:
+                type: string
+                x-go-name: Role
+            username:
+                type: string
+                x-go-name: Username
+        type: object
+        x-go-package: github.com/jovan/mybanksoal-api/internal/handler
+    Response:
+        properties:
+            data:
+                x-go-name: Data
+            error:
+                type: string
+                x-go-name: Error
+            message:
+                type: string
+                x-go-name: Message
+            success:
+                type: boolean
+                x-go-name: Success
+        type: object
+        x-go-package: github.com/jovan/mybanksoal-api/pkg/response
+    UpdateQuestionRequest:
+        properties:
+            answer:
+                type: string
+                x-go-name: Answer
+            content:
+                type: string
+                x-go-name: Content
+            title:
+                type: string
+                x-go-name: Title
+        type: object
+        x-go-package: github.com/jovan/mybanksoal-api/internal/handler
+    UpdateStatusRequest:
+        properties:
+            status:
+                $ref: '#/definitions/QuestionStatus'
+        type: object
+        x-go-package: github.com/jovan/mybanksoal-api/internal/handler
+info: {}
+paths:
+    /auth/login:
+        post:
+            description: Login with username and password to get JWT token
+            operationId: loginUser
+            parameters:
+                - description: Login Request Body
+                  in: body
+                  name: Body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/LoginRequest'
+            responses:
+                "200":
+                    $ref: '#/responses/successResponse'
+                "401":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - auth
+    /auth/register:
+        post:
+            description: Register a new user with username, password, and optional role
+            operationId: registerUser
+            parameters:
+                - description: Register Request Body
+                  in: body
+                  name: Body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/RegisterRequest'
+            responses:
+                "201":
+                    $ref: '#/responses/successResponse'
+                "400":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - auth
+    /questions:
+        get:
+            description: Get a list of questions with pagination
+            operationId: listQuestions
+            parameters:
+                - description: Offset
+                  format: int64
+                  in: query
+                  name: offset
+                  type: integer
+                  x-go-name: Offset
+                - description: Limit
+                  format: int64
+                  in: query
+                  name: limit
+                  type: integer
+                  x-go-name: Limit
+            responses:
+                "200":
+                    $ref: '#/responses/successResponse'
+                "500":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - questions
+        post:
+            description: Create a new question (starts as draft)
+            operationId: createQuestion
+            parameters:
+                - description: Create Question Request Body
+                  in: body
+                  name: Body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/CreateQuestionRequest'
+            responses:
+                "201":
+                    $ref: '#/responses/successResponse'
+                "400":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - questions
+    /questions/{id}:
+        delete:
+            description: Delete a question by ID
+            operationId: deleteQuestion
+            parameters:
+                - description: Question ID
+                  format: int64
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                  x-go-name: ID
+            responses:
+                "200":
+                    $ref: '#/responses/successResponse'
+                "400":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - questions
+        get:
+            description: Get question details
+            operationId: getQuestion
+            parameters:
+                - description: Question ID
+                  format: int64
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                  x-go-name: ID
+            responses:
+                "200":
+                    $ref: '#/responses/successResponse'
+                "404":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - questions
+        put:
+            description: Update question content
+            operationId: updateQuestion
+            parameters:
+                - description: Question ID
+                  format: int64
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                  x-go-name: ID
+                - description: Update Question Request Body
+                  in: body
+                  name: Body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/UpdateQuestionRequest'
+            responses:
+                "200":
+                    $ref: '#/responses/successResponse'
+                "400":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - questions
+    /questions/{id}/status:
+        patch:
+            description: Update question status (draft, publish, unpublish)
+            operationId: updateQuestionStatus
+            parameters:
+                - description: Question ID
+                  format: int64
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                  x-go-name: ID
+                - description: Update Status Request Body
+                  in: body
+                  name: Body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/UpdateStatusRequest'
+            responses:
+                "200":
+                    $ref: '#/responses/successResponse'
+                "400":
+                    $ref: '#/responses/errorResponse'
+            tags:
+                - questions
+responses:
+    errorResponse:
+        description: Error Response
+        schema:
+            $ref: '#/definitions/Response'
+    successResponse:
+        description: Success Response
+        schema:
+            $ref: '#/definitions/Response'
+swagger: "2.0"

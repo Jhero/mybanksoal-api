@@ -1,0 +1,404 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "This is a sample Question Bank API with RBAC and Status Workflow.",
+    "title": "MyBankSoal API.",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "name": "API Support",
+      "url": "http://www.swagger.io/support",
+      "email": "support@swagger.io"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0"
+  },
+  "host": "localhost:8080",
+  "basePath": "/",
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "description": "Login with username and password to get JWT token",
+        "tags": [
+          "auth"
+        ],
+        "operationId": "loginUser",
+        "parameters": [
+          {
+            "description": "Login Request Body",
+            "name": "Body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/successResponse"
+          },
+          "401": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "description": "Register a new user with username, password, and optional role",
+        "tags": [
+          "auth"
+        ],
+        "operationId": "registerUser",
+        "parameters": [
+          {
+            "description": "Register Request Body",
+            "name": "Body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegisterRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/successResponse"
+          },
+          "400": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      }
+    },
+    "/questions": {
+      "get": {
+        "description": "Get a list of questions with pagination",
+        "tags": [
+          "questions"
+        ],
+        "operationId": "listQuestions",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Offset",
+            "description": "Offset",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Limit",
+            "description": "Limit",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/successResponse"
+          },
+          "500": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      },
+      "post": {
+        "description": "Create a new question (starts as draft)",
+        "tags": [
+          "questions"
+        ],
+        "operationId": "createQuestion",
+        "parameters": [
+          {
+            "description": "Create Question Request Body",
+            "name": "Body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateQuestionRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/successResponse"
+          },
+          "400": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      }
+    },
+    "/questions/{id}": {
+      "get": {
+        "description": "Get question details",
+        "tags": [
+          "questions"
+        ],
+        "operationId": "getQuestion",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "ID",
+            "description": "Question ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/successResponse"
+          },
+          "404": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      },
+      "put": {
+        "description": "Update question content",
+        "tags": [
+          "questions"
+        ],
+        "operationId": "updateQuestion",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "ID",
+            "description": "Question ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Update Question Request Body",
+            "name": "Body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateQuestionRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/successResponse"
+          },
+          "400": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a question by ID",
+        "tags": [
+          "questions"
+        ],
+        "operationId": "deleteQuestion",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "ID",
+            "description": "Question ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/successResponse"
+          },
+          "400": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      }
+    },
+    "/questions/{id}/status": {
+      "patch": {
+        "description": "Update question status (draft, publish, unpublish)",
+        "tags": [
+          "questions"
+        ],
+        "operationId": "updateQuestionStatus",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "ID",
+            "description": "Question ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Update Status Request Body",
+            "name": "Body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateStatusRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/successResponse"
+          },
+          "400": {
+            "$ref": "#/responses/errorResponse"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "CreateQuestionRequest": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string",
+          "x-go-name": "Answer"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "github.com/jovan/mybanksoal-api/internal/handler"
+    },
+    "LoginRequest": {
+      "type": "object",
+      "properties": {
+        "password": {
+          "type": "string",
+          "x-go-name": "Password"
+        },
+        "username": {
+          "type": "string",
+          "x-go-name": "Username"
+        }
+      },
+      "x-go-package": "github.com/jovan/mybanksoal-api/internal/handler"
+    },
+    "QuestionStatus": {
+      "type": "string",
+      "x-go-package": "github.com/jovan/mybanksoal-api/internal/entity"
+    },
+    "RegisterRequest": {
+      "type": "object",
+      "properties": {
+        "password": {
+          "type": "string",
+          "x-go-name": "Password"
+        },
+        "role": {
+          "type": "string",
+          "x-go-name": "Role"
+        },
+        "username": {
+          "type": "string",
+          "x-go-name": "Username"
+        }
+      },
+      "x-go-package": "github.com/jovan/mybanksoal-api/internal/handler"
+    },
+    "Response": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "x-go-name": "Data"
+        },
+        "error": {
+          "type": "string",
+          "x-go-name": "Error"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "success": {
+          "type": "boolean",
+          "x-go-name": "Success"
+        }
+      },
+      "x-go-package": "github.com/jovan/mybanksoal-api/pkg/response"
+    },
+    "UpdateQuestionRequest": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string",
+          "x-go-name": "Answer"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "github.com/jovan/mybanksoal-api/internal/handler"
+    },
+    "UpdateStatusRequest": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/QuestionStatus"
+        }
+      },
+      "x-go-package": "github.com/jovan/mybanksoal-api/internal/handler"
+    }
+  },
+  "responses": {
+    "errorResponse": {
+      "description": "Error Response",
+      "schema": {
+        "$ref": "#/definitions/Response"
+      }
+    },
+    "successResponse": {
+      "description": "Success Response",
+      "schema": {
+        "$ref": "#/definitions/Response"
+      }
+    }
+  },
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
