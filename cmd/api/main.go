@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/casbin/casbin/v3" // Use v3
+	"github.com/casbin/casbin/v3/model"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -42,45 +43,91 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize casbin adapter: %v", err)
 	}
-	enforcer, err := casbin.NewEnforcer("config/rbac_model.conf", adapter)
+
+	// Use in-memory model to avoid file reading issues
+	m, err := model.NewModelFromString(`
+[request_definition]
+r = sub, obj, act
+
+[policy_definition]
+p = sub, obj, act
+
+[role_definition]
+g = _, _
+
+[policy_effect]
+e = some(where (p.eft == allow))
+
+[matchers]
+m = r.sub == p.sub && keyMatch2(r.obj, p.obj) && r.act == p.act
+`)
 	if err != nil {
-		log.Fatalf("Failed to initialize casbin enforcer: %v", err)
+		log.Fatalf("Failed to create casbin model: %v", err)
 	}
-	enforcer.LoadPolicy()
+
+	enforcer, err := casbin.NewEnforcer()
+	if err != nil {
+		log.Fatalf("Failed to create enforcer: %v", err)
+	}
+	
+	enforcer.SetModel(m)
+	enforcer.SetAdapter(adapter)
+	
+	if err := enforcer.LoadPolicy(); err != nil {
+		log.Fatalf("Failed to load policy: %v", err)
+	}
 
 	// Seed RBAC policies if empty
 	if hasPolicy, _ := enforcer.HasPolicy("admin", "/*", "*"); !hasPolicy {
 		enforcer.AddPolicy("admin", "/*", "*")            // Admin can access everything
 		enforcer.AddPolicy("user", "/questions", "GET")   // User can view questions
 		enforcer.AddPolicy("user", "/questions/*", "GET") // User can view single question
+		enforcer.AddPolicy("user", "/crosswords/levels", "GET")
+		enforcer.AddPolicy("user", "/crosswords/levels/*", "GET")
+		enforcer.AddPolicy("user", "/crosswords/levels/*/submit", "POST")
+		enforcer.AddPolicy("user", "/crosswords/leaderboard", "GET")
+		enforcer.AddPolicy("user", "/crosswords/questions", "GET")
+		enforcer.AddPolicy("user", "/crosswords/questions/*", "GET")
 		enforcer.AddPolicy("editor", "/questions", "POST")
 		enforcer.AddPolicy("editor", "/questions/*", "PUT")
 		enforcer.SavePolicy()
 	}
 
 	// Seed mobile_reader policies
-	if hasPolicy, _ := enforcer.HasPolicy("mobile_reader", "/questions", "GET"); !hasPolicy {
-		log.Println("Seeding mobile_reader policies...")
-		enforcer.AddPolicy("mobile_reader", "/questions", "GET")
-		enforcer.AddPolicy("mobile_reader", "/questions/*", "GET")
-		if err := enforcer.SavePolicy(); err != nil {
-			log.Printf("Failed to save policy: %v", err)
-		} else {
-			log.Println("mobile_reader policies saved successfully")
+	mobilePolicies := [][]interface{}{
+		{"mobile_reader", "/questions", "GET"},
+		{"mobile_reader", "/questions/*", "GET"},
+		{"mobile_reader", "/crosswords/levels", "GET"},
+		{"mobile_reader", "/crosswords/levels/*", "GET"},
+		{"mobile_reader", "/crosswords/levels/*/submit", "POST"},
+		{"mobile_reader", "/crosswords/leaderboard", "GET"},
+	}
+
+	for _, policy := range mobilePolicies {
+		if added, _ := enforcer.AddPolicy(policy...); added {
+			log.Printf("Added policy: %v", policy)
 		}
-	} else {
-		log.Println("mobile_reader policies already exist")
+	}
+
+	if err := enforcer.SavePolicy(); err != nil {
+		log.Printf("Failed to save policy: %v", err)
 	}
 
 	// 5. Setup Layers
 	userRepo := repository.NewUserRepository(db)
 	questionRepo := repository.NewQuestionRepository(db)
+	levelRepo := repository.NewLevelRepository(db)
+	crosswordQuestionRepo := repository.NewCrosswordQuestionRepository(db)
 
 	userUseCase := usecase.NewUserUseCase(userRepo, cfg)
 	questionUseCase := usecase.NewQuestionUseCase(questionRepo)
+	levelUseCase := usecase.NewLevelUseCase(levelRepo)
+	crosswordQuestionUseCase := usecase.NewCrosswordQuestionUseCase(crosswordQuestionRepo)
 
 	userHandler := handler.NewUserHandler(userUseCase)
 	questionHandler := handler.NewQuestionHandler(questionUseCase)
+	levelHandler := handler.NewLevelHandler(levelUseCase)
+	crosswordQuestionHandler := handler.NewCrosswordQuestionHandler(crosswordQuestionUseCase)
 
 	// 6. Setup Echo
 	e := echo.New()
@@ -145,6 +192,24 @@ func main() {
 	api.PUT("/questions/:id", questionHandler.Update)
 	api.PATCH("/questions/:id/status", questionHandler.UpdateStatus)
 	api.DELETE("/questions/:id", questionHandler.Delete)
+
+	// Crossword Routes
+	api.POST("/crosswords/import", levelHandler.ImportLevels)
+	api.GET("/crosswords/levels", levelHandler.GetLevels)
+	api.GET("/crosswords/levels/:id", levelHandler.GetLevel)
+	api.POST("/crosswords/levels", levelHandler.CreateLevel)
+	api.PUT("/crosswords/levels/:id", levelHandler.UpdateLevel)
+	api.DELETE("/crosswords/levels/:id", levelHandler.DeleteLevel)
+	
+	api.POST("/crosswords/levels/:id/submit", levelHandler.SubmitLevel)
+	api.GET("/crosswords/leaderboard", levelHandler.GetLeaderboard)
+
+	// Crossword Question Routes
+	api.GET("/crosswords/questions", crosswordQuestionHandler.GetAll)
+	api.POST("/crosswords/questions", crosswordQuestionHandler.Create)
+	api.GET("/crosswords/questions/:id", crosswordQuestionHandler.GetByID)
+	api.PUT("/crosswords/questions/:id", crosswordQuestionHandler.Update)
+	api.DELETE("/crosswords/questions/:id", crosswordQuestionHandler.Delete)
 
 	// Start Server
 	e.Logger.Fatal(e.Start(":" + cfg.App.Port))

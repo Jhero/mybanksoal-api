@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -94,8 +95,17 @@ func main() {
 		}
 		log.Println("Migration step completed successfully")
 	case "force":
-		// Expects version as second arg, simplified here
-		log.Println("Force command requires version implementation")
+		if len(os.Args) < 3 {
+			log.Fatal("Force requires version argument")
+		}
+		v, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			log.Fatalf("Invalid version: %v", err)
+		}
+		if err := m.Force(v); err != nil {
+			log.Fatalf("Force failed: %v", err)
+		}
+		log.Println("Force completed")
 	case "version":
 		v, dirty, err := m.Version()
 		if err != nil {
